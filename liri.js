@@ -1,184 +1,264 @@
-// Code to read and set any environment variables with the dotenv package
-require('dotenv').config();
+/****************************************************************************
+ ****************************************************************************
+    
+    Configure APIs
+    
+*****************************************************************************
+*****************************************************************************/
+const keys    = require("./keys.js");
 
-// Importing files needed to run the funtions
-var fs = require("fs");
-var keys = require('./keys.js');
-var request = require('request');
-var twitter = require('twitter');
-var Spotify = require('node-spotify-api');
+// Twitter
+const Twitter = require("twitter");
+const twitter = new Twitter(keys.twitter);
 
-//Variables to target specific APIs in the keys.js file
+// Spotify
+const Spotify = require("node-spotify-api");
+const spotify = new Spotify(keys.spotify);
 
-var liriCommand = process.argv[2];
-var input = process.argv[3];
-//======================================================================
+// OMDB
+const request = require("request");
 
-// Available commands for liri 
-//my-tweets, spotify-this-song, movie-this, do-what-it-says
-function commands (liriCommand, input){
-switch (liriCommand) {
-    case "my-tweets":
-    getTweets(input);
-    break;
+// File System
+const fs      = require("fs");
 
-    case "spotify-this-song":
-    getSong(input);
-    break;
+// Operating System (for end-of-line)
+const os      = require("os");
 
-    case "movie-this":
-    getMovie(input);
-    break;
 
-    case "do-what-it-says":
-    getRandom();
-    break;
 
-    //If no command is entered, this is the default message to user
-    default:
-      console.log("No valid argument has been provided, please enter one of the following commands: 'my-tweets', 'spotify-this-song', 'movie-this', 'do-what-it-says' followed by parameter.");
+/****************************************************************************
+ ****************************************************************************
+    
+    Initialize
+    
+*****************************************************************************
+*****************************************************************************/
+process.stdout.write("\033c");
+
+// Create a log file if it does not exist
+const file_log = "log.txt";
+
+if (!fs.existsSync(file_log)) {
+    fs.writeFile(file_log, "", error => {
+        if (error) {
+            console.log(`Error in creating "${file_log}"\n${error}\n\n\n`);
+            return;
+        }
+    });
+}
+
+const option = process.argv[2];
+const title  = process.argv.slice(3).join(" ");
+
+mainMenu(option, title);
+
+
+
+/****************************************************************************
+ ****************************************************************************
+    
+    Menu options
+    
+*****************************************************************************
+*****************************************************************************/
+function mainMenu(option = "", title) {
+    switch (option.toLowerCase()) {
+        case "my-tweets":
+            getTweets();
+            break;
+
+        case "spotify-this-song":
+            getSong((title) ? title : "The Sign");
+            break;
+
+        case "movie-this":
+            getMovie((title) ? title : "Mr. Nobody");
+            break;
+
+        case "do-what-it-says":
+            doWhatItSays();
+            break;
+
+        default:
+            saveOutput(`Error:\n"${option}" is a not valid command.\nPlease select "my-tweets", "spotify-this-song", "movie-this", or "do-what-it-says".\n\n\n`);
+
     }
 }
-//========================================================================
 
-// FUNCTION FOR EACH LIRI COMMAND
 
-// Function for Twitter
-function getTweets(input) {
-    var client = new twitter(keys.twitter);
-    var twitterUserName = input;
+function getTweets() {
+    const parameters = {
+        "count"      : 20,
+        "screen_name": "BobBarker000000"
+    };
 
-    //Callback for twitter to search 20 latest tweets for a specific twitter user
-    var params = {screen_name: twitterUserName, count: 20};
-    client.get('statuses/user_timeline', params, function(error, tweets, response) {
+    twitter.get("statuses/user_timeline", parameters, (error, tweets, response) => {
         if (error) {
-            console.log(error);
+            saveOutput(`Error in calling "Twitter"\n${error}\n\n\n`);
+            return;
         }
-        else {
-            for (var i = 0; i < tweets.length; i++) {
-                console.log("Tweet: " + tweets[i].text + "\nCreated: " + tweets[i].created_at);
 
-                //Creates variable to log tweets into log.txt file
-                var logTweets = twitterUserName + "\nTweet: " + tweets[i].created_at + "\nTweet Text: " + tweets[i].text + "\n-------\n";
 
-                //Appends txt to log.txt file
-                fs.appendFile('log.txt', logTweets, function (err) {
-                    if (err) throw err;
-                });
-
-                console.log('Saved!');
-
-            }
-        }
-    })
-};
-
-//Function for Spotify
-function getSong(songName) {
-    var spotify = new Spotify(keys.spotify);
-
-    //If no song is provided, use "The Sign" 
-        if (!songName) {
-            songName = "The Sign";
-        };        
-
-        console.log(songName);
-
-        //Callback to spotify to search for song name
-        spotify.search({ type: 'track', query: songName}, function(err, data) {
-            if (err) {
-                return console.log('Error occurred: ' + err);
-            } 
-            console.log("Artist: " + data.tracks.items[0].artists[0].name + "\nSong name: " + data.tracks.items[0].name +
-            "\nAlbum Name: " + data.tracks.items[0].album.name + "\nPreview Link: " + data.tracks.items[0].preview_url); 
+        /********************************************************************
             
-            //Creates a variable to save text into log.txt file
-            var logSong = "Artist: " + data.tracks.items[0].artists[0].name + "\nSong name: " + data.tracks.items[0].name +
-            "\nAlbum Name: " + data.tracks.items[0].album.name + "\nPreview Link: " + data.tracks.items[0].preview_url + "\n";
+            Write to terminal and file
             
-            //Appends text to log.txt file
-            fs.appendFile('log.txt', logSong, function (err) {
-                if (err) throw err;
-              });
-            
-            logResults(data);
+        *********************************************************************/
+        let output = "My Tweets\n";
+
+        output += addSeparator();
+        
+        tweets.forEach(t => {
+            // Extract date information
+            [, month, day, time, , year] = t.created_at.split(" ");
+            [hour, minute]               = time.split(":").map(x => parseInt(x, 10));
+
+            // Format the time stamp
+            const timeStamp = `${month} ${day} ${year}, ${hour % 12}:${minute} ${(hour < 12) ? "AM" : "PM"}`;
+
+            output += `@${t.user.screen_name} · ${timeStamp}\n"${t.text}"\n\n`;
         });
-};
 
-//Function for movies
-function getMovie(movieName) {
-    //If no movie name is provided, use Mr.Nobody as default
-        if (!movieName) {
-            movieName = "mr nobody";
-        }
-            
-    // Runs a request to the OMDB API with the movie specified
-    var queryUrl = "http://www.omdbapi.com/?t=" + movieName + "&y=&plot=short&r=json&tomatoes=true&apikey=trilogy";
+        output += addSeparator() + "\n";
 
-    // Helps debugging
-    console.log(queryUrl);
-
-    //Callback to OMDB API to get movie info
-    request(queryUrl, function(error, response, body) {
-
-        // If the request is successful
-        if (!error && response.statusCode === 200) {
-            var movieObject = JSON.parse(body);
-
-            //console.log(movieObject); // Show the text in the terminal
-            var movieResults = 
-            "------------------------------ begin ------------------------------" + "\r\n" +
-            "Title: " + movieObject.Title+"\r\n"+
-            "Year: " + movieObject.Year+"\r\n"+
-            "Imdb Rating: " + movieObject.imdbRating+"\r\n"+
-            "Rotten Tomatoes Rating: " + movieObject.tomatoRating+"\r\n"+
-            "Country: " + movieObject.Country+"\r\n"+
-            "Language: " + movieObject.Language+"\r\n"+
-            "Plot: " + movieObject.Plot+"\r\n"+
-            "Actors: " + movieObject.Actors+"\r\n"+
-            "------------------------------ end ------------------------------" + "\r\n";
-            console.log(movieResults);
-
-            //Appends movie results to log.txt file
-            fs.appendFile('log.txt', movieResults, function (err) {
-                if (err) throw err;
-              });
-              console.log("Saved!");
-              logResults(response);
-        } 
-        else {
-			console.log("Error :"+ error);
-			return;
-		}
+        saveOutput(output);
     });
-};
+}
 
-//Function for Random
-function getRandom(){
-    //Reads text in random.txt file
-    fs.readFile("random.txt", "utf8", function(error, data) {
+
+function getSong(title) {
+    const parameters = {
+        "type" : "track",
+        "query": title,
+        "limit": 1
+    };
+
+    spotify.search(parameters, (error, data) => {
         if (error) {
-            return console.log(error);
+            saveOutput(`Error in calling "Spotify"\n${error}\n\n\n`);
+            return;
         }
-        else {
-        console.log(data);
 
-        //creates a variable for data in random.txt
-        var randomData = data.split(",");
-        //passes data into getSong function
-        commands(randomData[0], randomData[1]);
+        // For simplicity, we assume that Spotify always finds the right song
+        const song = data.tracks.items[0];
+
+        // Display all artists
+        const artists = song.artists.map(a => a.name);
+
+
+        /********************************************************************
+            
+            Write to terminal and file
+            
+        *********************************************************************/
+        let output = "Spotify This Song\n";
+        
+        output += addSeparator();
+        
+        output += `Artists      : ${artists.join(", ")}\n`;
+        output += `Album        : ${song.album.name}\n`;
+        output += `Track        : ${song.name}\n`;
+        output += `Preview link : ${song.preview_url}\n\n`;
+        
+        output += addSeparator() + "\n";
+
+        saveOutput(output);
+    });
+}
+
+
+function getMovie(title) {
+    const api_url = `https://www.omdbapi.com/?apikey=${keys.omdb.key}&t=${title}&plot=short`;
+    
+    request(api_url, (error, response, body) => {
+        if (error) {
+            saveOutput(`Error in calling "OMDB"\n${error}\n\n\n`);
+            return;
         }
-        console.log("test" + randomData[0] + randomData[1]);
+
+        if (response.statusCode !== 200) {
+            saveOutput(`Error in calling "OMDB"\n${response}\n\n\n`);
+            return;
+        }
+
+        const movie = JSON.parse(body);
+        
+
+        /********************************************************************
+            
+            Write to terminal and file
+            
+        *********************************************************************/
+        let output = "Movie This\n";
+
+        output += addSeparator();
+        
+        output += `Title          : ${movie.Title}\n`;
+        output += `Release year   : ${movie.Year}\n`;
+        output += `Plot           : ${movie.Plot}\n`;
+        output += `Actors         : ${movie.Actors}\n`;
+        output += `IMDB           : ${movie.imdbRating}\n`;
+        output += `RottenTomatoes : ${(movie.Ratings[1]) ? movie.Ratings[1].Value : "N/A"}\n`;
+        output += `Production     : ${movie.Country}\n`;
+        output += `Language       : ${movie.Language}\n\n`;
+        
+        output += addSeparator() + "\n";
+
+        saveOutput(output);
     });
-};
+}
 
-//Function to log results from the other functions
-function logResults(data){
-    fs.appendFile("log.txt", data, function(err) {
-      if (err)
-          throw err;
+
+function doWhatItSays() {
+    fs.readFile("random.txt", "utf8", (error, data) => {
+        if (error) {
+            saveOutput(`Error in calling "Do What It Says":\n${error}\n\n\n`);
+            return;
+        }
+
+        // Use require("os").EOL to split into lines, independent of the platform
+        const commands = data.split(os.EOL);
+        
+
+        /********************************************************************
+            
+            Write to terminal and file
+            
+        *********************************************************************/
+        if (commands.length === 1 && commands[0] === "") {
+            saveOutput(`Error in calling "Do What It Says":\nPlease enter a command in "random.txt".\n\n\n`);
+        }
+
+        commands.forEach(c => {
+            if (c === "") {
+                return;
+            }
+
+            // Use indexOf instead of split, in case the title has a comma
+            const index = c.indexOf(",");
+
+            const option = (index >= 0) ? c.substring(0,  index).trim().toLowerCase() : c;
+            const title  = (index >= 0) ? c.substring(index + 1).trim()               : undefined;
+
+            mainMenu(option, title);
+        });
     });
-  };
+}
 
-  commands(liriCommand,input);
 
+function addSeparator() {
+    return "-".repeat(60) + "\n\n";
+}
+
+
+function saveOutput(output) {
+    // Write to the terminal
+    console.log(output);
+
+    // Write to the log file
+    fs.appendFile(file_log, output, error => {
+        if (error) {
+            return console.log(`Error in appending to "${file_log}"\n${error}\n\n\n`);
+        }
+    });
+}
