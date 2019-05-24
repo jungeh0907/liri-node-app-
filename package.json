@@ -1,25 +1,18 @@
+    
 {
-  "name": "liri-node-app",
+  "name": "Jason Jung",
   "version": "1.0.0",
-  "description": "LIRI is a Language Interpretation and Recognition Interface.",
-  "main": "keys.js",
+  "description": "",
+  "main": "liri.js",
+  "dependencies": {
+    "node-spotify-api": "^1.0.7",
+    "request": "^2.81.0",
+    "twitter": "^1.7.1"
+  },
+  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/jungeh0907/liri-node-app-.git"
-  },
-  "keywords": [],
   "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/jungeh0907/liri-node-app-/issues"
-  },
-  "homepage": "https://github.com/jungeh0907/liri-node-app-#readme",
-  "dependencies": {
-    "request": "^2.74.0",
-    "spotify": "^0.3.0",
-    "twitter": "^1.4.0"
-  }
+  "license": "ISC"
 }
