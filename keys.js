@@ -1,6 +1,15 @@
-console.log('this is loaded');
+exports.twitter = {
+    "consumer_key"       : "---enter yours here---",
+    "consumer_secret"    : "---enter yours here---",
+    "access_token_key"   : "---enter yours here---",
+    "access_token_secret": "---enter yours here---",
+}
 
 exports.spotify = {
-  id: process.env.SPOTIFY_ID,
-  secret: process.env.SPOTIFY_SECRET
-};
+    "id"    : "---enter yours here---",
+    "secret": "---enter yours here---"
+}
+
+exports.omdb = {
+    "key": "---enter yours here---"
+}
